@@ -1,21 +1,22 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// GitHub Pages project site: https://10kara.github.io/seraavern/
+// VITE_BASE задаётся в GitHub Actions: '/<имя-репозитория>/' для
+// https://10kara.github.io/<имя-репозитория>/ или '/' для своего домена.
 export default defineConfig({
-  base: '/seraavern/',
+  base: process.env.VITE_BASE || '/',
   plugins: [react()],
   build: {
     outDir: 'dist',
     emptyOutDir: true,
+    target: 'es2020',
+    rollupOptions: {
+      output: {
+        // Библиотеки — в отдельный файл: он кешируется между обновлениями сайта.
+        manualChunks: id => (id.includes('node_modules') ? 'vendor' : undefined),
+      },
+    },
   },
-  // Dev-сервер доступен в веб-превью (0.0.0.0 + разрешённый внешний хост).
-  server: {
-    host: true,
-    allowedHosts: true,
-  },
-  preview: {
-    host: true,
-    allowedHosts: true,
-  },
+  server: { host: true, allowedHosts: true },
+  preview: { host: true, allowedHosts: true },
 })

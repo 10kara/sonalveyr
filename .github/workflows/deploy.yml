@@ -1,8 +1,9 @@
-name: Deploy Jedi Archives
+name: Deploy archive
 
 on:
   push:
     branches: [main]
+    paths-ignore: ['api/**', 'gar-archives/**', '**.md']
   workflow_dispatch:
 
 permissions:
@@ -18,13 +19,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 22
+          cache: npm
 
       - name: Install dependencies
         run: npm install --no-audit --no-fund
@@ -32,22 +32,22 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
-          # Ключ принимается под любым из двух имён.
-          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
-          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-          VITE_SUPABASE_STORAGE_BUCKET: ${{ secrets.VITE_SUPABASE_STORAGE_BUCKET }}
+          # Settings → Secrets and variables → Actions → Variables:
+          #   API_URL       = https://api.solanveyr.com
+          #   CUSTOM_DOMAIN = solanveyr.com   (если сайт открывается по своему домену)
+          VITE_API_URL: ${{ vars.API_URL || secrets.API_URL }}
+          # Путь берётся из имени репозитория: переименование не ломает сайт.
+          VITE_BASE: ${{ vars.CUSTOM_DOMAIN && '/' || format('/{0}/', github.event.repository.name) }}
 
-      # GitHub Pages has no SPA fallback. Serving index.html as 404.html
-      # lets BrowserRouter keep clean URLs such as /seraavern/character.
-      - name: Add SPA fallback
-        run: cp dist/index.html dist/404.html
+      # У GitHub Pages нет SPA-фолбэка: 404.html = index.html,
+      # чтобы прямые ссылки вида /dossier открывались.
+      - name: SPA fallback and custom domain
+        run: |
+          cp dist/index.html dist/404.html
+          if [ -n "${{ vars.CUSTOM_DOMAIN }}" ]; then echo "${{ vars.CUSTOM_DOMAIN }}" > dist/CNAME; fi
 
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v4
         with:
           path: dist
 

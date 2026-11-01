@@ -1,0 +1,23 @@
+# /etc/systemd/system/solanveyr-api.service
+[Unit]
+Description=Solan Veyr archive API
+After=network.target mysql.service mariadb.service
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/solanveyr-api
+ExecStart=/usr/bin/node /opt/solanveyr-api/server.js
+Restart=always
+RestartSec=3
+User=www-data
+Group=www-data
+Environment=NODE_ENV=production
+# Защита: сервис может писать только в папку с картинками.
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/solanveyr-api/uploads
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
